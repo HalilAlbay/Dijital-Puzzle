@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101c30"><title>Dijital Puzzle</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#233e60,#0b1322 70%);color:#f3f8ff;font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;display:flex;justify-content:center}.app{width:min(100%,560px);padding:22px 14px 32px}h1{margin:5px 0 6px;font-size:28px}p{color:#bfd0e4;line-height:1.5}.top{display:flex;justify-content:space-between;align-items:center}.pill{border:1px solid #5c83a7;border-radius:20px;padding:7px 12px;background:#203752}.board{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#0a1424;border:2px solid #436783;border-radius:15px;padding:7px;box-shadow:0 12px 40px #0006}.tile{aspect-ratio:1;min-width:0;border:1px solid #3e5b75;border-radius:10px;background:#182c43;position:relative;display:grid;place-items:center;touch-action:manipulation;cursor:pointer;color:white}.tile:focus-visible{outline:3px solid #fff}.tile svg{width:90%;height:90%;overflow:visible}.tile.powered{background:#174f4e;box-shadow:inset 0 0 16px #21cda04a}.tile.empty{opacity:.35;cursor:default}.wire{stroke:#829db9;stroke-width:13;stroke-linecap:round}.powered .wire{stroke:#55f5be;filter:drop-shadow(0 0 5px #40eeb4)}.hub{fill:#a9c3dc}.powered .hub{fill:#b4ffe4}.icon{font-size:22px;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}.controls{display:flex;gap:9px;margin-top:17px}.controls button{flex:1;padding:13px 6px;border:1px solid #638eaf;border-radius:12px;background:#244665;color:white;font-weight:700;font-size:15px}.controls button:disabled{opacity:.4}#status{min-height:48px;font-weight:600;color:#a9f4da}small{color:#a9bdd4}.progress{height:7px;border-radius:8px;background:#2a4058;overflow:hidden;margin:12px 0 20px}.bar{height:100%;background:#52e7ad;transition:width .2s} 
+</style></head><body><main class="app"><div class="top"><h1>⚡ Dijital Puzzle</h1><span class="pill" id="levelLabel">1 / 20</span></div><p>Kablolara dokunup 90° döndür. Pili ampule bağla ve ışığı yak!</p><div class="progress"><div class="bar" id="bar"></div></div><div class="board" id="board" aria-label="Elektrik devresi oyun tahtası"></div><p id="status" role="status"></p><div class="controls"><button id="prev">◀ Önceki</button><button id="reset">↻ Yenile</button><button id="next">Sonraki ▶</button></div><p><small>20 bölüm • Dokunmatik uyumlu • İlerleme bu cihazda saklanır • Sunucu gerekmez</small></p></main>
+<script>
+"use strict";
+const N=5, TOTAL=20, D=[[-1,0],[0,1],[1,0],[0,-1]], opposite=d=>(d+2)%4;
+const board=document.getElementById("board"),status=document.getElementById("status");
+let unlocked=Math.min(TOTAL,Math.max(1,Number(localStorage.getItem("dp-unlocked"))||1));
+let level=1,tiles=[],won=false;
+function pathFor(l){
+ const snake=[];for(let r=0;r<N;r++){const cols=[0,1,2,3,4];if(r%2)cols.reverse();for(const c of cols)snake.push(r*N+c);}
+ // 20 progressively longer routes, battery always top-left
+ return snake.slice(0,Math.min(25,4+l));
+}
+function direction(a,b){const ar=Math.floor(a/N),ac=a%N,br=Math.floor(b/N),bc=b%N;return D.findIndex(([dr,dc])=>ar+dr===br&&ac+dc===bc)}
+function rotate(mask,n){let x=mask;for(let i=0;i<n;i++)x=((x<<1)&15)|(x>>3);return x}
+function init(l){
+ level=l;won=false;const path=pathFor(l);tiles=Array.from({length:25},()=>({mask:0,type:"empty",power:false}));
+ path.forEach((pos,i)=>{const dirs=[];if(i>0)dirs.push(direction(pos,path[i-1]));if(i<path.length-1)dirs.push(direction(pos,path[i+1]));const mask=dirs.reduce((v,d)=>v|(1<<d),0);tiles[pos]={mask,type:i===0?"battery":i===path.length-1?"bulb":"wire",power:false};});
+ // fixed endpoints; only wire tiles rotate
+ let scrambled=0;path.forEach((pos,i)=>{if(i===0||i===path.length-1)return;const n=(l*7+i*11)%3+1;tiles[pos].mask=rotate(tiles[pos].mask,n);scrambled++});
+ // Ensure no accidental solved initial layout
+ if(isSolved()) {const pos=path[1];tiles[pos].mask=rotate(tiles[pos].mask,1)}
+ update();render();
+}
+function neighbors(pos){const r=Math.floor(pos/N),c=pos%N;return D.map(([dr,dc],d)=>({r:r+dr,c:c+dc,d})).filter(x=>x.r>=0&&x.r<N&&x.c>=0&&x.c<N)}
+function energize(){
+ tiles.forEach(t=>t.power=false);const queue=[0],seen=new Set([0]);tiles[0].power=true;
+ while(queue.length){const p=queue.shift(),t=tiles[p];for(const {r,c,d} of neighbors(p)){const q=r*N+c,u=tiles[q];if((t.mask&(1<<d))&&(u.mask&(1<<opposite(d)))&&!seen.has(q)){seen.add(q);u.power=true;queue.push(q)}}}
+ return tiles.some(t=>t.type==="bulb"&&t.power)
+}
+function isSolved(){return energize()}
+function update(){
+ const solved=isSolved();if(solved&&!won){won=true;unlocked=Math.max(unlocked,Math.min(TOTAL,level+1));localStorage.setItem("dp-unlocked",String(unlocked))}
+ document.getElementById("levelLabel").textContent=level+" / "+TOTAL;document.getElementById("bar").style.width=(level/TOTAL*100)+"%";
+ document.getElementById("prev").disabled=level===1;document.getElementById("next").disabled=level>=unlocked||level===TOTAL;
+ status.textContent=solved?(level===TOTAL?"🏆 Tebrikler! 20 bölümün hepsini bitirdin.":"💡 Ampul yandı! Sonraki bölüme geçebilirsin."):"Kabloları döndürerek kesintisiz bir bağlantı kur.";
+}
+function render(){
+ board.replaceChildren();tiles.forEach((t,i)=>{const b=document.createElement("button");b.className="tile "+(t.power?"powered ":"")+(t.type==="empty"?"empty":"");b.disabled=t.type!=="wire"||won;b.setAttribute("aria-label",t.type==="wire"?"Kabloyu döndür, kare "+(i+1):t.type==="battery"?"Pil":t.type==="bulb"?"Ampul":"Boş kare");
+ const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 100 100");
+ for(let d=0;d<4;d++)if(t.mask&(1<<d)){const coords=[[50,4],[96,50],[50,96],[4,50]][d];const line=document.createElementNS(svg.namespaceURI,"line");line.setAttribute("x1",50);line.setAttribute("y1",50);line.setAttribute("x2",coords[0]);line.setAttribute("y2",coords[1]);line.setAttribute("class","wire");svg.append(line)}
+ const hub=document.createElementNS(svg.namespaceURI,"circle");hub.setAttribute("cx",50);hub.setAttribute("cy",50);hub.setAttribute("r",11);hub.setAttribute("class","hub");svg.append(hub);b.append(svg);
+ if(t.type==="battery"||t.type==="bulb"){const icon=document.createElement("span");icon.className="icon";icon.textContent=t.type==="battery"?"🔋":t.power?"💡":"⚫";b.append(icon)}
+ b.addEventListener("click",()=>{if(t.type!=="wire"||won)return;t.mask=rotate(t.mask,1);update();render()});board.append(b)
+ })
+}
+document.getElementById("prev").onclick=()=>{if(level>1)init(level-1)};
+document.getElementById("next").onclick=()=>{if(level<unlocked&&level<TOTAL)init(level+1)};
+document.getElementById("reset").onclick=()=>init(level);
+init(1);
+</script></body></html>
