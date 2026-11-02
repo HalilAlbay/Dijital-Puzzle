@@ -1,54 +1,71 @@
-<!doctype html>
-<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101c30"><title>Dijital Puzzle</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#233e60,#0b1322 70%);color:#f3f8ff;font-family:system-ui,-apple-system,sans-serif;min-height:100dvh;display:flex;justify-content:center}.app{width:min(100%,560px);padding:22px 14px 32px}h1{margin:5px 0 6px;font-size:28px}p{color:#bfd0e4;line-height:1.5}.top{display:flex;justify-content:space-between;align-items:center}.pill{border:1px solid #5c83a7;border-radius:20px;padding:7px 12px;background:#203752}.board{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#0a1424;border:2px solid #436783;border-radius:15px;padding:7px;box-shadow:0 12px 40px #0006}.tile{aspect-ratio:1;min-width:0;border:1px solid #3e5b75;border-radius:10px;background:#182c43;position:relative;display:grid;place-items:center;touch-action:manipulation;cursor:pointer;color:white}.tile:focus-visible{outline:3px solid #fff}.tile svg{width:90%;height:90%;overflow:visible}.tile.powered{background:#174f4e;box-shadow:inset 0 0 16px #21cda04a}.tile.empty{opacity:.35;cursor:default}.wire{stroke:#829db9;stroke-width:13;stroke-linecap:round}.powered .wire{stroke:#55f5be;filter:drop-shadow(0 0 5px #40eeb4)}.hub{fill:#a9c3dc}.powered .hub{fill:#b4ffe4}.icon{font-size:22px;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}.controls{display:flex;gap:9px;margin-top:17px}.controls button{flex:1;padding:13px 6px;border:1px solid #638eaf;border-radius:12px;background:#244665;color:white;font-weight:700;font-size:15px}.controls button:disabled{opacity:.4}#status{min-height:48px;font-weight:600;color:#a9f4da}small{color:#a9bdd4}.progress{height:7px;border-radius:8px;background:#2a4058;overflow:hidden;margin:12px 0 20px}.bar{height:100%;background:#52e7ad;transition:width .2s} 
-</style></head><body><main class="app"><div class="top"><h1>⚡ Dijital Puzzle</h1><span class="pill" id="levelLabel">1 / 20</span></div><p>Kablolara dokunup 90° döndür. Pili ampule bağla ve ışığı yak!</p><div class="progress"><div class="bar" id="bar"></div></div><div class="board" id="board" aria-label="Elektrik devresi oyun tahtası"></div><p id="status" role="status"></p><div class="controls"><button id="prev">◀ Önceki</button><button id="reset">↻ Yenile</button><button id="next">Sonraki ▶</button></div><p><small>20 bölüm • Dokunmatik uyumlu • İlerleme bu cihazda saklanır • Sunucu gerekmez</small></p></main>
-<script>
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101a2a"><title>Dijital Puzzle — Devre Ustası</title><style>
+*{box-sizing:border-box}body{margin:0;background:#0b1424;color:#edf6ff;font:15px system-ui,-apple-system,sans-serif}.app{max-width:750px;margin:auto;padding:12px}header{display:flex;align-items:center;justify-content:space-between;gap:8px}h1{font-size:23px;margin:8px 0}.badge{background:#213b55;padding:8px 12px;border-radius:20px}.intro{color:#b9d0e6;margin:6px 0 12px;line-height:1.4}.panel{background:linear-gradient(145deg,#152c45,#101c31);border:1px solid #365572;border-radius:17px;padding:7px;box-shadow:0 14px 30px #0005}svg{width:100%;height:auto;display:block;touch-action:none;user-select:none}.device{fill:#1e344d;stroke:#688ba8;stroke-width:2}.deviceLabel{fill:#eaf4ff;font-size:15px;font-weight:700;text-anchor:middle;pointer-events:none}.terminal{fill:#ffcd6e;stroke:#fff0bf;stroke-width:2;cursor:crosshair}.terminal.selected{fill:#7dfce0;stroke:#fff;stroke-width:3}.terminalText{fill:#c6ddf1;font-size:11px;text-anchor:middle;pointer-events:none}.wire{stroke:#a8bed3;stroke-width:5;fill:none;stroke-linecap:round}.wire.live{stroke:#54f4c0;filter:drop-shadow(0 0 5px #50ffbd)}.wire.draft{stroke:#ffdf7c;stroke-dasharray:9 6}.bulbGlow{fill:#ffe477;filter:drop-shadow(0 0 12px #ffe15b)}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}button{border:1px solid #5c83a3;background:#254563;color:white;border-radius:11px;padding:12px;font-size:14px;font-weight:700;flex:1;min-width:90px}button:disabled{opacity:.4}button.primary{background:#247f72}#message{min-height:48px;color:#d7eaff;font-weight:600;line-height:1.5}#hint{font-size:13px;color:#9eb8d1}.danger{color:#ff9b9b!important}.success{color:#8ef7c9!important}</style></head><body><main class="app"><header><h1>⚡ Devre Ustası</h1><span class="badge" id="counter">1 / 20</span></header><p class="intro">Sarı uçtan diğer sarı uca kablo çek. Yanlış bağlantı serbest! Devreyi kur, anahtarı aç ve elektriği test et.</p><div class="panel"><svg id="stage" viewBox="0 0 600 540" aria-label="Serbest bağlantılı elektrik devresi bulmacası"></svg></div><div id="message" role="status"></div><div class="actions"><button id="prev">◀ Önceki</button><button id="undo">↶ Son kablo</button><button id="clear">Kabloları sil</button><button class="primary" id="test">⚡ Elektriği aç</button><button id="next">Sonraki ▶</button></div><p id="hint">Kablo: bir sarı uçtan diğerine sürükle veya uçlara sırayla dokun. Kabloyu silmek için “Son kablo”.</p></main><script>
 "use strict";
-const N=5, TOTAL=20, D=[[-1,0],[0,1],[1,0],[0,-1]], opposite=d=>(d+2)%4;
-const board=document.getElementById("board"),status=document.getElementById("status");
-let unlocked=Math.min(TOTAL,Math.max(1,Number(localStorage.getItem("dp-unlocked"))||1));
-let level=1,tiles=[],won=false;
-function pathFor(l){
- const snake=[];for(let r=0;r<N;r++){const cols=[0,1,2,3,4];if(r%2)cols.reverse();for(const c of cols)snake.push(r*N+c);}
- // 20 progressively longer routes, battery always top-left
- return snake.slice(0,Math.min(25,4+l));
+const NS="http://www.w3.org/2000/svg",svg=document.getElementById("stage"),msg=document.getElementById("message");
+const TOTAL=20,KEY="devre-ustasi-v2",saved=(()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch{return {}}})();
+let unlocked=Math.max(1,Math.min(TOTAL,Number(saved.unlocked)||1)),level=Math.max(1,Math.min(unlocked,Number(saved.level)||1)),wires=[],terminals=[],devices=[],selected=null,draft=null,energized=false,won=false,blown=false;
+const el=(tag,attrs={},parent=svg)=>{const n=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);parent.append(n);return n};
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({unlocked,level}))}catch{}};
+const rand=(seed)=>{let x=seed|0;return()=>{x=(Math.imul(x,1664525)+1013904223)|0;return(x>>>0)/4294967296}};
+function setup(l){
+ level=l;wires=[];terminals=[];devices=[];selected=null;draft=null;energized=false;won=false;blown=false;
+ const rng=rand(l*3571), bulbs=l<=5?1:l<=10?2:l<=15?3:l<=18?4:5, switches=l<=4?1:l<=12?2:3;
+ const specs=[{kind:"battery",name:"PİL"},{kind:"switch",name:"ANAHTAR"}];
+ for(let i=1;i<switches;i++)specs.push({kind:"switch",name:"ANAHTAR "+(i+1)});
+ for(let i=0;i<bulbs;i++)specs.push({kind:"bulb",name:"AMPUL "+(i+1)});
+ if(l>=3)specs.push({kind:"junction",name:"DAĞITICI"});if(l>=7)specs.push({kind:"junction",name:"DAĞITICI 2"});
+ if(l>=2)specs.push({kind:"decoy",name:"BOŞ UÇ"});
+ // Dispersed positions without a grid, with spacing for touch.
+ const pts=[];for(const s of specs){let p,tries=0;do{p={x:80+rng()*440,y:65+rng()*405};tries++}while(tries<350&&pts.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<110));pts.push(p)}
+ specs.forEach((s,i)=>{const p=pts[i],id="d"+i;const dev={...s,id,x:p.x,y:p.y,on:true,ports:[]};devices.push(dev);const count=s.kind==="junction"?3:s.kind==="decoy"?1:2;
+ for(let j=0;j<count;j++){const a=count===3?(-Math.PI/2+j*2*Math.PI/3):count===1?0:(j===0?Math.PI:0);const t={id:id+"p"+j,dev:id,idx:j,x:p.x+Math.cos(a)*51,y:p.y+Math.sin(a)*28};terminals.push(t);dev.ports.push(t.id)}
+ });save();render();notice("Kabloları kendin bağla. Yanlış bağlantı yapabilirsin.");
 }
-function direction(a,b){const ar=Math.floor(a/N),ac=a%N,br=Math.floor(b/N),bc=b%N;return D.findIndex(([dr,dc])=>ar+dr===br&&ac+dc===bc)}
-function rotate(mask,n){let x=mask;for(let i=0;i<n;i++)x=((x<<1)&15)|(x>>3);return x}
-function init(l){
- level=l;won=false;const path=pathFor(l);tiles=Array.from({length:25},()=>({mask:0,type:"empty",power:false}));
- path.forEach((pos,i)=>{const dirs=[];if(i>0)dirs.push(direction(pos,path[i-1]));if(i<path.length-1)dirs.push(direction(pos,path[i+1]));const mask=dirs.reduce((v,d)=>v|(1<<d),0);tiles[pos]={mask,type:i===0?"battery":i===path.length-1?"bulb":"wire",power:false};});
- // fixed endpoints; only wire tiles rotate
- let scrambled=0;path.forEach((pos,i)=>{if(i===0||i===path.length-1)return;const n=(l*7+i*11)%3+1;tiles[pos].mask=rotate(tiles[pos].mask,n);scrambled++});
- // Ensure no accidental solved initial layout
- if(isSolved()) {const pos=path[1];tiles[pos].mask=rotate(tiles[pos].mask,1)}
- update();render();
+function notice(s,cls=""){msg.textContent=s;msg.className=cls}
+function connect(a,b){if(!a||!b||a===b)return;if(wires.some(w=>(w[0]===a&&w[1]===b)||(w[0]===b&&w[1]===a))){notice("Bu iki uç zaten bağlı.");return}
+ const limit=level<=5?Infinity:level<=10?10:level<=15?12:level<=18?14:16;
+ if(wires.length>=limit){notice("Kablo sınırına ulaştın. Bir kabloyu geri al.","danger");return}
+ wires.push([a,b]);energized=false;blown=false;won=false;notice("Kablo bağlandı. Elektriği açarak devreyi kontrol et.");render()}
+function evaluate(){
+ const adj=new Map(terminals.map(t=>[t.id,[]]));const edge=(a,b)=>{adj.get(a).push(b);adj.get(b).push(a)};
+ wires.forEach(w=>edge(...w));for(const d of devices){if(d.kind==="switch"&&d.on||d.kind==="junction"){for(let i=1;i<d.ports.length;i++)edge(d.ports[0],d.ports[i])}}
+ const battery=devices.find(d=>d.kind==="battery"),start=battery.ports[0],end=battery.ports[1];
+ const flood=(src,graph)=>{const seen=new Set([src]),q=[src];for(let i=0;i<q.length;i++)for(const v of graph.get(q[i]))if(!seen.has(v)){seen.add(v);q.push(v)}return seen};
+ const direct=flood(start,adj);if(direct.has(end))return{short:true,lit:[]};
+ // Full network: lamps conduct, but direct shorts are detected without crossing lamps.
+ for(const d of devices.filter(d=>d.kind==="bulb"))edge(d.ports[0],d.ports[1]);
+ const powered=flood(start,adj);const lit=devices.filter(d=>d.kind==="bulb"&&powered.has(d.ports[0])&&powered.has(d.ports[1])&&powered.has(end)).map(d=>d.id);
+ return{short:false,lit,all:lit.length===devices.filter(d=>d.kind==="bulb").length&&lit.length>0};
 }
-function neighbors(pos){const r=Math.floor(pos/N),c=pos%N;return D.map(([dr,dc],d)=>({r:r+dr,c:c+dc,d})).filter(x=>x.r>=0&&x.r<N&&x.c>=0&&x.c<N)}
-function energize(){
- tiles.forEach(t=>t.power=false);const queue=[0],seen=new Set([0]);tiles[0].power=true;
- while(queue.length){const p=queue.shift(),t=tiles[p];for(const {r,c,d} of neighbors(p)){const q=r*N+c,u=tiles[q];if((t.mask&(1<<d))&&(u.mask&(1<<opposite(d)))&&!seen.has(q)){seen.add(q);u.power=true;queue.push(q)}}}
- return tiles.some(t=>t.type==="bulb"&&t.power)
-}
-function isSolved(){return energize()}
-function update(){
- const solved=isSolved();if(solved&&!won){won=true;unlocked=Math.max(unlocked,Math.min(TOTAL,level+1));localStorage.setItem("dp-unlocked",String(unlocked))}
- document.getElementById("levelLabel").textContent=level+" / "+TOTAL;document.getElementById("bar").style.width=(level/TOTAL*100)+"%";
- document.getElementById("prev").disabled=level===1;document.getElementById("next").disabled=level>=unlocked||level===TOTAL;
- status.textContent=solved?(level===TOTAL?"🏆 Tebrikler! 20 bölümün hepsini bitirdin.":"💡 Ampul yandı! Sonraki bölüme geçebilirsin."):"Kabloları döndürerek kesintisiz bir bağlantı kur.";
-}
+function test(){const r=evaluate();energized=true;blown=r.short;won=!!r.all;if(blown)notice("⚠️ KISA DEVRE! Sigorta attı. Yanlış kabloyu çıkar ve yeniden dene.","danger");
+ else if(won){unlocked=Math.max(unlocked,Math.min(TOTAL,level+1));save();notice("💡 Harika! Bütün ampuller yandı. Sonraki bölüm açıldı.","success")}
+ else notice("Devre tamamlanmadı. Bağlantıları ve anahtarları kontrol et.");
+ render()}
 function render(){
- board.replaceChildren();tiles.forEach((t,i)=>{const b=document.createElement("button");b.className="tile "+(t.power?"powered ":"")+(t.type==="empty"?"empty":"");b.disabled=t.type!=="wire"||won;b.setAttribute("aria-label",t.type==="wire"?"Kabloyu döndür, kare "+(i+1):t.type==="battery"?"Pil":t.type==="bulb"?"Ampul":"Boş kare");
- const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("viewBox","0 0 100 100");
- for(let d=0;d<4;d++)if(t.mask&(1<<d)){const coords=[[50,4],[96,50],[50,96],[4,50]][d];const line=document.createElementNS(svg.namespaceURI,"line");line.setAttribute("x1",50);line.setAttribute("y1",50);line.setAttribute("x2",coords[0]);line.setAttribute("y2",coords[1]);line.setAttribute("class","wire");svg.append(line)}
- const hub=document.createElementNS(svg.namespaceURI,"circle");hub.setAttribute("cx",50);hub.setAttribute("cy",50);hub.setAttribute("r",11);hub.setAttribute("class","hub");svg.append(hub);b.append(svg);
- if(t.type==="battery"||t.type==="bulb"){const icon=document.createElement("span");icon.className="icon";icon.textContent=t.type==="battery"?"🔋":t.power?"💡":"⚫";b.append(icon)}
- b.addEventListener("click",()=>{if(t.type!=="wire"||won)return;t.mask=rotate(t.mask,1);update();render()});board.append(b)
- })
+ svg.replaceChildren();el("rect",{width:600,height:540,rx:14,fill:"#102238"});for(let i=0;i<25;i++){const x=30+i*23;el("line",{x1:x,y1:0,x2:x,y2:540,stroke:"#1a334b","stroke-width":.6})}
+ const lit=energized&&!blown?evaluate().lit:[];const get=id=>terminals.find(t=>t.id===id);
+ for(const [a,b] of wires){const A=get(a),B=get(b);el("path",{d:"M"+A.x+" "+A.y+" Q"+((A.x+B.x)/2+18)+" "+((A.y+B.y)/2-18)+" "+B.x+" "+B.y,class:"wire"+(energized&&!blown?" live":"")})}
+ for(const d of devices){const litUp=lit.includes(d.id),g=el("g");el("rect",{x:d.x-43,y:d.y-25,width:86,height:50,rx:13,class:"device"},g);if(litUp)el("circle",{cx:d.x,cy:d.y,r:19,class:"bulbGlow"},g);
+ const icon=d.kind==="battery"?"🔋":d.kind==="bulb"?(litUp?"💡":"◉"):d.kind==="switch"?(d.on?"⏻":"○"):d.kind==="junction"?"●":"?";
+ const txt=el("text",{x:d.x,y:d.y+6,class:"deviceLabel"},g);txt.textContent=icon;
+ const name=el("text",{x:d.x,y:d.y-37,class:"terminalText"},g);name.textContent=d.name;
+ if(d.kind==="switch"){const hit=el("rect",{x:d.x-43,y:d.y-25,width:86,height:50,fill:"transparent",style:"cursor:pointer"},g);hit.addEventListener("pointerdown",e=>e.stopPropagation());hit.addEventListener("click",()=>{d.on=!d.on;energized=false;won=false;notice(d.on?"Anahtar açıldı.":"Anahtar kapandı.");render()})}
+ }
+ for(const t of terminals){el("circle",{cx:t.x,cy:t.y,r:16,fill:"transparent",class:"hit", "data-id":t.id});el("circle",{cx:t.x,cy:t.y,r:9,class:"terminal"+(selected===t.id?" selected":"") ,"data-id":t.id});}
+ if(draft){const a=get(draft.a);el("path",{d:"M"+a.x+" "+a.y+" L"+draft.x+" "+draft.y,class:"wire draft"})}
+ document.getElementById("counter").textContent=level+" / "+TOTAL;document.getElementById("prev").disabled=level===1;document.getElementById("next").disabled=level>=unlocked||level===TOTAL;
 }
-document.getElementById("prev").onclick=()=>{if(level>1)init(level-1)};
-document.getElementById("next").onclick=()=>{if(level<unlocked&&level<TOTAL)init(level+1)};
-document.getElementById("reset").onclick=()=>init(level);
-init(1);
+const point=e=>{const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())};
+const closest=p=>{let best=null,dist=22;for(const t of terminals){const d=Math.hypot(p.x-t.x,p.y-t.y);if(d<dist){dist=d;best=t.id}}return best};
+let startPoint=null;
+svg.addEventListener("pointerdown",e=>{const p=point(e),id=closest(p);if(!id)return;startPoint={id,x:p.x,y:p.y};draft={a:id,x:p.x,y:p.y};svg.setPointerCapture(e.pointerId);render()});
+svg.addEventListener("pointermove",e=>{if(!draft)return;const p=point(e);draft.x=p.x;draft.y=p.y;render()});
+svg.addEventListener("pointerup",e=>{if(!startPoint)return;const p=point(e),target=closest(p),from=startPoint.id,moved=Math.hypot(p.x-startPoint.x,p.y-startPoint.y)>20;draft=null;startPoint=null;
+ if(target&&target!==from){connect(from,target);selected=null}else if(!moved){if(selected&&selected!==from){connect(selected,from);selected=null}else{selected=selected===from?null:from;notice(selected?"Şimdi ikinci bağlantı ucuna dokun.":"Seçim kaldırıldı.")}}render()});
+svg.addEventListener("pointercancel",()=>{draft=null;startPoint=null;render()});
+document.getElementById("test").onclick=test;document.getElementById("undo").onclick=()=>{wires.pop();energized=false;won=false;blown=false;notice("Son kablo kaldırıldı.");render()};
+document.getElementById("clear").onclick=()=>{wires=[];energized=false;won=false;blown=false;notice("Bütün kablolar silindi.");render()};
+document.getElementById("prev").onclick=()=>{if(level>1)setup(level-1)};
+document.getElementById("next").onclick=()=>{if(level<unlocked&&level<TOTAL)setup(level+1)};
+setup(level);
 </script></body></html>
